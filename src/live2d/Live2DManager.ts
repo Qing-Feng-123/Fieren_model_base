@@ -32,8 +32,23 @@ export class Live2DManager {
   private model: Live2DModelType | null = null;
   private coreReady = false;
 
-  /** 初始化（幂等）：确认运行时 → 建画布 → 加载模型 */
+  /** 初始化（幂等）：确认运行时 → WebGL 预检 → 建画布 → 加载模型 */
   async init(canvas: HTMLCanvasElement): Promise<void> {
+    // 0. WebGL 能力预检：不支持的设备直接给出明确错误，而不是让渲染进程崩溃白屏
+    const probe = document.createElement('canvas');
+    const gl = probe.getContext('webgl2') || probe.getContext('webgl');
+    if (!gl) {
+      throw new Error('当前设备/浏览器不支持 WebGL，无法渲染 Live2D（请更换浏览器或开启硬件加速）');
+    }
+    // WebGL 上下文丢失（GPU 崩溃/内存不足）时给出可见提示
+    canvas.addEventListener('webglcontextlost', (e) => {
+      e.preventDefault();
+      logger.error(TAG, 'WebGL 上下文丢失（设备 GPU 异常或内存不足）');
+      window.dispatchEvent(new CustomEvent('hiyori:fatal', {
+        detail: 'WebGL 上下文丢失：设备 GPU 异常或内存不足，Live2D 无法继续渲染',
+      }));
+    });
+
     // 1. 运行时：由 index.html 预加载；缺失时按 env 配置补加载
     if (!this.coreReady) {
       if (typeof (window as any).Live2DCubismCore === 'undefined') {

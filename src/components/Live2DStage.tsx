@@ -11,6 +11,8 @@ export function Live2DStage() {
   useEffect(() => {
     exposeHiyoriAPI();
     const canvas = canvasRef.current!;
+    const onFatal = (e: Event) => setError((e as CustomEvent<string>).detail);
+    window.addEventListener('hiyori:fatal', onFatal);
     live2d
       .init(canvas)
       .then(() => attachInteractions(canvas))
@@ -19,6 +21,7 @@ export function Live2DStage() {
         logger.error('Live2D', msg);
         setError(msg);
       });
+    return () => window.removeEventListener('hiyori:fatal', onFatal);
   }, []);
 
   return (
