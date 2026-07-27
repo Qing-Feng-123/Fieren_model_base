@@ -5,7 +5,7 @@
  * 不含任何"哪个动作表示什么情绪"的业务语义——语义在 actions 层定义。
  */
 import * as PIXI from 'pixi.js';
-import { Live2DModel } from 'pixi-live2d-display';
+import { Live2DModel } from 'pixi-live2d-display/cubism4';
 import { ENV, MODEL_URL } from '../config/env';
 import { logger } from '../logging/logger';
 
@@ -28,11 +28,14 @@ export class Live2DManager {
   private model: Live2DModel | null = null;
   private coreReady = false;
 
-  /** 初始化（幂等）：加载 Cubism Core → 建画布 → 加载模型 */
+  /** 初始化（幂等）：确认运行时 → 建画布 → 加载模型 */
   async init(canvas: HTMLCanvasElement): Promise<void> {
     if (!this.coreReady) {
-      logger.info(TAG, `加载 Cubism Core 运行时…`);
-      await loadScript(ENV.CUBISM_CORE_URL);
+      // core 脚本由 index.html 预加载（pixi-live2d-display 在模块加载时即检查运行时）
+      if (typeof (window as any).Live2DCubismCore === 'undefined') {
+        logger.info(TAG, '运行时未预加载，动态加载 Cubism Core…');
+        await loadScript(ENV.CUBISM_CORE_URL);
+      }
       this.coreReady = true;
       logger.success(TAG, 'Cubism Core 就绪');
     }
@@ -68,8 +71,8 @@ export class Live2DManager {
       this.model.internalModel.motionManager.on('motionStart', (g: string, i: number) =>
         logger.info(TAG, `动作开始: ${g}[${i}]`)
       );
-      this.model.internalModel.motionManager.on('motionFinish', (g: string, i: number) =>
-        logger.info(TAG, `动作结束: ${g}[${i}]`)
+      this.model.internalModel.motionManager.on('motionFinish', () =>
+        logger.info(TAG, '动作播放结束')
       );
     }
   }
