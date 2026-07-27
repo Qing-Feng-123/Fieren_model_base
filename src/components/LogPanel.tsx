@@ -15,7 +15,15 @@ export function LogPanel() {
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => logger.subscribe(setEntries), []);
-  useEffect(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), [entries]);
+  // 注意：effect 不能返回 scrollIntoView 的返回值——部分 WebView 的
+  // smooth-scroll polyfill 会返回非函数对象，React 会误当作清理函数调用
+  useEffect(() => {
+    try {
+      bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+    } catch {
+      bottomRef.current?.scrollIntoView();
+    }
+  }, [entries]);
 
   return (
     <aside
