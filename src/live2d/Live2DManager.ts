@@ -3,15 +3,19 @@
  * --------------------------------------------------
  * 只负责：加载运行时 / 加载模型 / 播放动作 / 设置参数 / 命中检测。
  * 不含任何"哪个动作表示什么情绪"的业务语义——语义在 actions 层定义。
+ *
+ * 注意：pixi / pixi-live2d-display 使用动态 import。
+ * 它们在模块加载时就要检查 Cubism 运行时，静态 import 会让
+ * 整个前端在运行时缺失时白屏；动态 import 则保证 UI 永远先渲染，
+ * 错误只体现在日志面板里。
  */
-import * as PIXI from 'pixi.js';
-import { Live2DModel } from 'pixi-live2d-display/cubism4';
 import { ENV, MODEL_URL } from '../config/env';
 import { logger } from '../logging/logger';
 
 const TAG = 'Live2D';
 
-(window as any).PIXI = PIXI;
+type PIXIModule = typeof import('pixi.js');
+type Live2DModelType = import('pixi-live2d-display/cubism4').Live2DModel;
 
 function loadScript(url: string): Promise<void> {
   return new Promise((resolve, reject) => {
@@ -24,21 +28,29 @@ function loadScript(url: string): Promise<void> {
 }
 
 export class Live2DManager {
-  private app: PIXI.Application | null = null;
-  private model: Live2DModel | null = null;
+  private app: import('pixi.js').Application | null = null;
+  private model: Live2DModelType | null = null;
   private coreReady = false;
 
   /** 初始化（幂等）：确认运行时 → 建画布 → 加载模型 */
   async init(canvas: HTMLCanvasElement): Promise<void> {
+    // 1. 运行时：由 index.html 预加载；缺失时按 env 配置补加载
     if (!this.coreReady) {
-      // core 脚本由 index.html 预加载（pixi-live2d-display 在模块加载时即检查运行时）
       if (typeof (window as any).Live2DCubismCore === 'undefined') {
-        logger.info(TAG, '运行时未预加载，动态加载 Cubism Core…');
+        logger.warn(TAG, '运行时未预加载，尝试动态加载 Cubism Core…');
         await loadScript(ENV.CUBISM_CORE_URL);
+        if (typeof (window as any).Live2DCubismCore === 'undefined') {
+          throw new Error('Cubism Core 加载后仍不可用');
+        }
       }
       this.coreReady = true;
       logger.success(TAG, 'Cubism Core 就绪');
     }
+
+    // 2. 引擎模块（动态加载，失败不影响 UI）
+    const PIXI: PIXIModule = await import('pixi.js');
+    (window as any).PIXI = PIXI;
+    const { Live2DModel } = await import('pixi-live2d-display/cubism4');
 
     if (!this.app) {
       this.app = new PIXI.Application({
@@ -66,7 +78,7 @@ export class Live2DManager {
         canvas.parentElement!.clientWidth / 2,
         canvas.parentElement!.clientHeight / 2
       );
-      this.app.stage.addChild(this.model);
+      this.app.stage.addChild(this.model as any);
       logger.success(TAG, `模型加载完成 (${Math.round(this.model.width)}×${Math.round(this.model.height)})`);
       this.model.internalModel.motionManager.on('motionStart', (g: string, i: number) =>
         logger.info(TAG, `动作开始: ${g}[${i}]`)

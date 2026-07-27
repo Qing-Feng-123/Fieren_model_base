@@ -7,13 +7,16 @@
  */
 
 export const ENV = {
-  /** Cubism Core 运行时脚本（jsDelivr CDN） */
-  CUBISM_CORE_URL:
-    'https://cdn.jsdelivr.net/npm/live2dcubismcore@1.0.2/live2dcubismcore.min.js',
+  /** Cubism Core 运行时脚本（默认本地部署；想换回 CDN 改这里，同时同步 index.html） */
+  CUBISM_CORE_URL: '/lib/live2dcubismcore.min.js',
 
-  /** GitHub 文件床 → jsDelivr CDN 基地址（换分支 / 仓库改这里） */
-  MODEL_CDN_BASE:
-    'https://cdn.jsdelivr.net/gh/Qing-Feng-123/model_base@hiyori_pro/runtime',
+  /**
+   * 模型资源基地址。
+   * 默认 '/model'：运行时文件内置在 public/model/，随站点一起部署，零外部依赖。
+   * 想换回「GitHub 文件床 + jsDelivr CDN」，改回：
+   *   'https://cdn.jsdelivr.net/gh/Qing-Feng-123/model_base@hiyori_pro/runtime'
+   */
+  MODEL_CDN_BASE: '/model',
 
   /** 模型入口文件（相对 MODEL_CDN_BASE） */
   MODEL_ENTRY: 'hiyori_pro_t11.model3.json',

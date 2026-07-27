@@ -5,9 +5,11 @@
 ## 技术栈与依赖解耦
 
 - React + TypeScript + Vite + Tailwind CSS
-- Live2D：pixi.js@6 + pixi-live2d-display，Cubism Core 运行时走 jsDelivr CDN
-- 模型文件床：GitHub 仓库 `Qing-Feng-123/model_base@hiyori_pro` 分支，经 jsDelivr CDN 加载
-- **所有外部 URL 集中在 `src/config/env.ts`**，换 CDN / 模型 / 分支只改这一个文件
+- Live2D：pixi.js@6 + pixi-live2d-display（Cubism 4 专用入口）
+- Cubism Core 运行时：**本地内置**（`public/lib/`，随站点部署）
+- 模型运行时文件：**本地内置**（`public/model/`，共 17 个文件约 4.8MB，与仓库 `hiyori_pro` 分支 `runtime/` 一致）
+- **所有外部地址集中在 `src/config/env.ts`**：想换回「GitHub 文件床 + jsDelivr CDN」，把 `MODEL_CDN_BASE` 改为 `https://cdn.jsdelivr.net/gh/Qing-Feng-123/model_base@hiyori_pro/runtime` 即可
+- 引擎层（pixi / pixi-live2d-display）使用动态 import：即使 Live2D 加载失败，页面 UI 和日志面板也照常渲染，错误会以横幅 + 日志形式可见，绝不白屏
 
 ## 模块结构（基础功能按模块拆分）
 
